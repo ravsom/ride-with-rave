@@ -102,7 +102,7 @@ exports.findOrAddUser = function(req, res, next) {
 					req.session.auth = true;
 					req.session.userId = obj._id;
 					req.session.user = obj;
-					req.session.admin = false; //assing regular user role by default
+					req.session.admin = false; //assign regular user role by default
 					res.redirect('/#application');
 					// }
 				}

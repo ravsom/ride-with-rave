@@ -1,5 +1,4 @@
 var express = require('express'),
-	routes = require('./routes'),
 	http = require('http'),
 	util = require('util'),
 	path = require('path'),
@@ -90,6 +89,8 @@ var db = (req, res, next) => {
 	return next();
 };
 
+var routes = require('./routes');
+
 var checkUser = routes.main.checkUser;
 var checkAdmin = routes.main.checkAdmin;
 var checkApplicant = routes.main.checkApplicant;
@@ -120,7 +121,8 @@ var googleOptions = {
 };
 
 var authenticateCB = function(req, res) {
-	console.log("Authenticating call back.");
+	//FIXME Check how user gets populated here -
+	console.log();
 	if (req.isAuthenticated()) {
 		req.session.auth = true;
 		req.session.userId = req.user._id;

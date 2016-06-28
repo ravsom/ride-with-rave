@@ -27,8 +27,7 @@ exports.add = function(req, res, next) {
 };
 
 exports.attended = (req, res, next) => {
-	//const userId = req.session.user._id;
-	const userId = "5772447970538d961c889382";
+	const userId = req.session.user._id;
 	req.db.Ride.findByUserAttendance(userId, 'title rideDate theme', (err, ride)=> {
 		if (err != null) {
 			next(new Error(err));

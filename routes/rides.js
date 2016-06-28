@@ -6,13 +6,12 @@ var SKIP = 0;
 exports.add = function(req, res, next) {
 	if (req.body) {
 		req.db.Ride.create({
-			title: req.body.title,
-			text: req.body.text || null,
-			url: req.body.url || null,
-			author: {
+			createdBy: {
 				id: req.session.user._id,
 				name: req.session.user.displayName
-			}
+			},
+			title: req.body.title,
+			riderAttendance: req.body.riderAttendance
 		}, function(err, docs) {
 			if (err) {
 				console.error(err);
@@ -25,6 +24,25 @@ exports.add = function(req, res, next) {
 	} else {
 		next(new Error('No data'));
 	}
+};
+
+exports.attended = (req, res, next) => {
+	//const userId = req.session.user._id;
+	const userId = "5772447970538d961c889382";
+	req.db.Ride.findByUserAttendance(userId, 'title rideDate theme', (err, ride)=> {
+		if (err != null) {
+			next(new Error(err));
+			return;
+		}
+		if (ride) {
+			res.status(200).json(ride);
+		}
+		else {
+			res.status(200).json({"message": "no ride"});
+		}
+
+	})
+
 };
 
 exports.getRides = function(req, res, next) {
@@ -46,20 +64,10 @@ exports.getRides = function(req, res, next) {
 			} else {
 				item.admin = false;
 			}
-			if (doc.author.id == req.session.userId) {
+			if (doc.createdBy.id == req.session.userId) {
 				item.own = true;
 			} else {
 				item.own = false;
-			}
-			if (doc.likes && doc.likes.indexOf(req.session.user._id) > -1) {
-				item.like = true;
-			} else {
-				item.like = false;
-			}
-			if (doc.watches && doc.watches.indexOf(req.session.user._id) > -1) {
-				item.watch = true;
-			} else {
-				item.watch = false;
 			}
 			rides.push(item);
 		});
@@ -83,10 +91,7 @@ exports.getRide = function(req, res, next) {
 			title: true,
 			text: true,
 			url: true,
-			author: true,
-			comments: true,
-			watches: true,
-			likes: true
+			createdBy: true
 		}, function(err, obj) {
 			if (err) return next(err);
 			if (!obj) {
@@ -112,42 +117,13 @@ exports.del = function(req, res, next) {
 	})
 };
 
-function likeRide(req, res, next) {
-	req.db.Ride.findByIdAndUpdate(req.body._id, {
-		$push: {
-			likes: req.session.userId
-		}
-	}, {}, function(err, obj) {
-		if (err) {
-			next(err);
-		} else {
-			res.status(200).json(obj);
-		}
-	});
-};
-
-function watchRide(req, res, next) {
-	req.db.Ride.findByIdAndUpdate(req.body._id, {
-		$push: {
-			watches: req.session.userId
-		}
-	}, {}, function(err, obj) {
-		if (err) return next(err);
-		else {
-			res.status(200).json(obj);
-		}
-	});
-}
-
 exports.updateRide = function(req, res, next) {
 	var anyAction = false;
 	if (req.body._id && req.params.id) {
 		if (req.body && req.body.action == 'like') {
 			anyAction = true;
-			likeRide(req, res);
 		} else if (req.body && req.body.action == 'watch') {
 			anyAction = true;
-			watchRide(req, res);
 		} else if (req.body && req.body.action == 'comment' && req.body.comment && req.params.id) {
 			anyAction = true;
 			req.db.Ride.findByIdAndUpdate(req.params.id, {

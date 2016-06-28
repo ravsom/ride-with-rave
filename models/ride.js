@@ -1,63 +1,19 @@
-var userSentiment = 'positive neutral negative'.split(' ');
 var mongoose = require('mongoose');
 var Schema = mongoose.Schema;
+var enumRides = 'interval endurance strength race-day recovery'.split(' ');
+const enumSentiment = 'negative neutral postive'.split(' ');
+const enumPerceivedIntensity = 'low moderate high'.split(' ');
+var ObjectId = Schema.Types.ObjectId;
 
 var Ride = new Schema({
 	title: {
-		required: true,
 		type: String,
-		trim: true,
-		// match: /^([[:alpha:][:space:][:punct:]]{1,100})$/
-		match: /^([\w ,.!?]{1,100})$/
+		required: true
 	},
-	text: {
+	theme: {
 		type: String,
-		trim: true,
-		max: 2000
-	},
-	feedback: [{
-		text: {
-			type: String,
-			trim: true,
-			max: 2000
-		},
-		rating: {
-			type: Number,
-			max: 5,
-			min: 1,
-			required: true,
-			default: 3
-		},
-		sentiment: {
-			type: String,
-			enum: userSentiment,
-			default: userSentiment[1]
-		},
-		favoriteTrack: {
-			type: Array
-		},
-		author: {
-			id: {
-				type: Schema.Types.ObjectId,
-				ref: 'User'
-			},
-			name: String
-		}
-	}],
-	likes: [{
-		type: Schema.Types.ObjectId,
-		ref: 'User'
-	}],
-	author: {
-		id: {
-			type: Schema.Types.ObjectId,
-			ref: 'User',
-			required: true
-		},
-		name: {
-			type: String,
-			required: true
-		}
+		enum: enumRides,
+		default: enumRides[0]
 	},
 	rideDate: {
 		type: Date,
@@ -69,12 +25,66 @@ var Ride = new Schema({
 		default: Date.now,
 		required: true
 	},
+	createdBy: {
+		id: {
+			type: Schema.Types.ObjectId,
+			ref: 'User'
+		},
+		name: String
+	},
 	updated: {
 		type: Date,
 		default: Date.now,
 		required: true
-	}
+	},
+	riderAttendance: [{
+		type: ObjectId,
+		ref: 'User',
+		required: true
+	}],
+	feedback: [{
+		rating: {
+			type: Number,
+			max: 5,
+			min: 1,
+			default: 3
+		},
+		perceivedIntensity: {
+			type: String,
+			enum: enumPerceivedIntensity,
+			default: enumPerceivedIntensity[1]
+		},
+		sentiment: {
+			type: String,
+			required: true,
+			enum: enumSentiment,
+			default: enumSentiment[1]
+		},
+		favoriteTrack: {
+			type: ObjectId, //track ID
+			ref: 'Track'
+		},
+		rider: {
+			type: ObjectId,
+			ref: 'User'
+		},
+		created: {
+			type: Date,
+			default: Date.now,
+			required: true
+		},
+		updated: {
+			type: Date,
+			default: Date.now,
+			required: true
+		}
+	}]
 });
+
+Ride.statics.findByUserAttendance = function(id, fields, callback) {
+	var Ride = this;
+	return Ride.find({riderAttendance: id}, fields, callback);
+};
 
 Ride.pre('save', function(next) {
 	if (!this.isModified('updated')) this.updated = new Date;

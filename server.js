@@ -83,8 +83,7 @@ var models = require('./models');
 var db = (req, res, next) => {
 	req.db = {
 		User: connection.model('User', models.User, 'users'),
-		Ride: connection.model('Ride', models.Ride, 'rides'),
-		Rider: connection.model('Rider', models.Rider, 'riders')
+		Ride: connection.model('Ride', models.Ride, 'rides')
 	};
 	return next();
 };
@@ -174,15 +173,15 @@ passport.use(new FacebookStrategy(facebookOptions, function(accessToken, refresh
 
 
 app.get('/auth/facebook',
-	passport.authenticate('facebook', {scope: ['email']}),
+	passport.authenticate('facebook', {scope: ['email']}),//gender not a valid scope
 	function(req, res) {
-		// The request will be redirected to GitHub for authentication, so this
+		// The request will be redirected to facebook for authentication, so this
 		// function will not be called.
+		console.log("Facebook callback");
 	});
 
 app.get('/auth/facebook/callback',
-	passport.authenticate('facebook', {failureRedirect: '/#login'}),
-	authenticateCB);
+	passport.authenticate('facebook', {failureRedirect: '/#login'}), authenticateCB);
 
 //Google
 passport.use(new GoogleStrategy(googleOptions, function(accessToken, refreshToken, profile, done) {
@@ -221,8 +220,7 @@ passport.use(new GoogleStrategy(googleOptions, function(accessToken, refreshToke
 app.get('/auth/google', passport.authenticate('google'));
 
 app.get('/auth/google/callback',
-	passport.authenticate('google', {failureRedirect: '/#login'}),
-	authenticateCB);
+	passport.authenticate('google', {failureRedirect: '/#login'}), authenticateCB);
 
 
 //MAIN
@@ -236,6 +234,7 @@ app.post('/api/rides', checkUser, db, routes.rides.add);
 app.get('/api/rides/:id', checkUser, db, routes.rides.getRide);
 app.put('/api/rides/:id', checkUser, db, routes.rides.updateRide);
 app.delete('/api/rides/:id', checkUser, db, routes.rides.del);
+app.get('/api/rides-attended', checkUser, db, routes.rides.attended);
 
 //User ride feedback
 
@@ -247,11 +246,7 @@ app.put('/api/users/:id', checkAdmin, db, routes.users.update);
 app.delete('/api/users/:id', checkAdmin, db, routes.users.del);
 app.get('/api/users.csv', checkAdmin, db, routes.users.getUsersCsv);
 
-//RIDERS
-app.post('/api/rider', checkAdmin, db, routes.riders.addRider);
-
 //APPLICATION
-
 app.post('/api/application', checkAdmin, db, routes.application.add);
 app.put('/api/application', checkApplicant, db, routes.application.update);
 app.get('/api/application', checkApplicant, db, routes.application.get);

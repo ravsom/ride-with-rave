@@ -44,7 +44,10 @@ exports.getUser = function(req, res, next) {
 exports.add = function(req, res, next) {
 	var user = new req.db.User(req.body);
 	user.save(function(err) {
-		if (err) next(err);
+		if (err) {
+			next(err);
+			return;
+		}
 		res.json(user);
 	});
 };
@@ -84,29 +87,29 @@ exports.findOrAddUser = function(req, res, next) {
 		if (err) return next(err);
 		if (!obj) {
 			console.warn('Creating a user', obj, data);
-			req.db.User.create({
-					profileId: data.id,
-					token: req.session.angelListAccessToken,
-					profile: data,
-					email: data.email,
-					firstName: data.name.split(' ')[0],
-					lastName: data.name.split(' ')[1],
-					displayName: data.name,
-					headline: data.bio,
-					photoUrl: data.image,
-					facebookUrl: data.facebook_url,
-					googlePlusUrl: data.url
-				}, function(err, obj) { //remember the scope of variables!
-					if (err) return next(err);
-					console.log('User was created', obj);
-					req.session.auth = true;
-					req.session.userId = obj._id;
-					req.session.user = obj;
-					req.session.admin = false; //assign regular user role by default
-					res.redirect('/#application');
-					// }
-				}
-			);
+			//req.db.User.create({
+			//		profileId: data.id,
+			//		//token: req.session.angelListAccessToken,
+			//		profile: data,
+			//		email: data.email,
+			//		firstName: data.name.split(' ')[0],
+			//		lastName: data.name.split(' ')[1],
+			//		displayName: data.name,
+			//		headline: data.bio,
+			//		photoUrl: data.image,
+			//		facebookUrl: data.facebook_url,
+			//		googlePlusUrl: data.url
+			//	}, function(err, obj) { //remember the scope of variables!
+			//		if (err) return next(err);
+			//		console.log('User was created', obj);
+			//		req.session.auth = true;
+			//		req.session.userId = obj._id;
+			//		req.session.user = obj;
+			//		req.session.admin = false; //assign regular user role by default
+			//		res.redirect('/#application');
+			//		// }
+			//	}
+			//);
 		} else { //user is in the database
 			req.session.auth = true;
 			req.session.userId = obj._id;

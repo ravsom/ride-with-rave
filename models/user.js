@@ -4,7 +4,6 @@ var Schema = mongoose.Schema;
 
 var enumAuthType = 'google facebook'.split(' ');
 var userGender = 'male female'.split(' ');
-var roles = 'user staff mentor investor founder'.split(' ');
 
 var User = new Schema({
 	userAuthType: {
@@ -20,24 +19,19 @@ var User = new Schema({
 	},
 	lastName: {
 		type: String,
-		required: true,
+		required: false,
 		trim: true
 	},
 	displayName: {
 		type: String,
-		required: true,
-		trim: true
+		required: false,
+		trim: true,
+		default: this.firstName + (this.lastName ? this.lastName : ' ')
 	},
 	email: {
 		type: String,
-		required: true,
+		required: false,
 		trim: true
-	},
-	role: {
-		type: String,
-		enum: roles,
-		required: true,
-		default: roles[0]
 	},
 	approved: {
 		type: Boolean,
@@ -51,7 +45,6 @@ var User = new Schema({
 		type: Boolean,
 		default: false
 	},
-	headline: String,
 	photoUrl: String,
 	created: {
 		type: Date,
@@ -65,20 +58,30 @@ var User = new Schema({
 	googlePlusUrl: String,
 	gender: {
 		type: String,
-		enum: userGender
+		enum: userGender,
+		required: false
 	},
-	occupation: String
+	occupation: String,
+	mappedUser: {
+		type: Boolean,
+		default: false
+	}
 });
 
 
+const callBackCheck = (cb, err, user) => {
+	if (err) return cb(err);
+	if (!user) return cb(new Error('User is not found'));
+	cb(null, user);
+};
+
 User.statics.findProfileById = function(id, fields, callback) {
 	var User = this;
+	return User.findById(id, fields, callBackCheck.bind(this, callback));
+};
 
-	return User.findById(id, fields, function(err, user) {
-		if (err) return callback(err);
-		if (!user) return callback(new Error('User is not found'));
-		callback(null, user);
-	});
+User.statics.findProfileByName = (name, fields, callback)=> {
+	return User.find({displayName: name}, fields, callBackCheck.bind(this, callback));
 };
 
 User.plugin(findOrCreate);

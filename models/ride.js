@@ -40,7 +40,7 @@ var Ride = new Schema({
 	riderAttendance: [{
 		type: ObjectId,
 		ref: 'User',
-		required: true
+		required: false
 	}],
 	feedback: [{
 		rating: {

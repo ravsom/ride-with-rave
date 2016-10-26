@@ -5,10 +5,15 @@ var SKIP = 0;
 
 exports.add = function(req, res, next) {
 	if (req.body) {
+
+		const displayName = req.body.displayName;
+		const userId = req.body.userId;
 		req.db.Ride.create({
 			createdBy: {
-				id: req.session.user._id,
-				name: req.session.user.displayName
+				id: userId,
+				displayName: displayName
+				// id: req.session.user._id, //TODO - Rework when auth in place.
+				// name: req.session.user.displayName
 			},
 			title: req.body.title,
 			riderAttendance: req.body.riderAttendance
@@ -58,16 +63,16 @@ exports.getRides = function(req, res, next) {
 		var rides = [];
 		docs.forEach(function(doc, i, list) {
 			var item = doc.toObject();
-			if (req.session.user.admin) {
-				item.admin = true;
-			} else {
-				item.admin = false;
-			}
-			if (doc.createdBy.id == req.session.userId) {
-				item.own = true;
-			} else {
-				item.own = false;
-			}
+			// if (req.session.user.admin) {//TODO - Rework when auth in place.
+			// 	item.admin = true;
+			// } else {
+			// 	item.admin = false;
+			// }
+			// if (doc.createdBy.id == req.session.userId) {
+			// 	item.own = true;
+			// } else {
+			// 	item.own = false;
+			// }
 			rides.push(item);
 		});
 		var body = {};
@@ -114,6 +119,13 @@ exports.del = function(req, res, next) {
 			next(new Error('User is not authorized to delete Ride.'));
 		}
 	})
+};
+
+exports.addFeedback = (req, res, next)=> {
+	var rideId = req.params.id;
+	var userId = req.session.userId;
+
+
 };
 
 exports.updateRide = function(req, res, next) {

@@ -1,6 +1,7 @@
 var bcrypt = require('bcryptjs');
 
 exports.checkAdmin = function(request, response, next) {
+	if(true) return next(); //TODO - Rework when auth in place.
 	if (request.session && request.session.auth && request.session.userId && request.session.admin) {
 		console.info('Access ADMIN: ' + request.session.userId);
 		return next();
@@ -10,6 +11,7 @@ exports.checkAdmin = function(request, response, next) {
 };
 
 exports.checkUser = function(req, res, next) {
+	if(true) return next();//TODO - Remove when auth in place
 	if (req.session && req.session.auth && req.session.userId && (req.session.user.approved || req.session.admin)) {
 		console.info('Access USER: ' + req.session.userId);
 		return next();

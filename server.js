@@ -100,28 +100,26 @@ passport.serializeUser(function(user, done) {
 });
 
 passport.deserializeUser(function(obj, done) {
-	console.log("De - Serializing user:" + obj);
 	done(null, obj);
 });
-
 
 var facebookOptions = {
 	clientID: process.env.FACEBOOK_CLIENT_ID,
 	clientSecret: process.env.FACEBOOK_CLIENT_SECRET,
-	callbackURL: 'http://localhost:' + app.get('port') + '/auth/facebook/callback',
+	callbackURL: 'http://localhost:' + app.get('port') + '/api/auth/facebook/callback',
 	profileFields: ['id', 'displayName', 'photos', 'emails', 'gender']
 };
 
 var googleOptions = {
 	clientID: process.env.GOOGLE_CLIENT_ID,
 	clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-	callbackURL: 'http://localhost:' + app.get('port') + '/auth/google/callback',
+	callbackURL: 'http://localhost:' + app.get('port') + '/api/auth/google/callback',
 	scope: "openid profile email"
 };
 
 var authenticateCB = function(req, res) {
 	//FIXME Check how user gets populated here -
-	console.log();
+	console.trace();
 	if (req.isAuthenticated()) {
 		req.session.auth = true;
 		req.session.userId = req.user._id;
@@ -131,7 +129,9 @@ var authenticateCB = function(req, res) {
 	if (req.user.approved) {
 		res.json(req.user);
 	} else {
-		res.json({'message': 'not approved'});
+		console.log('requested user: ' + req.user);
+		res.redirect('http://localhost:3000/members');
+		// res.json(req.user);
 	}
 };
 
@@ -172,7 +172,7 @@ passport.use(new FacebookStrategy(facebookOptions, function(accessToken, refresh
 }));
 
 
-app.get('/auth/facebook',
+app.get('/api/auth/facebook',
 	passport.authenticate('facebook', {scope: ['email']}),//gender not a valid scope
 	function(req, res) {
 		// The request will be redirected to facebook for authentication, so this
@@ -180,8 +180,13 @@ app.get('/auth/facebook',
 		console.log("Facebook callback");
 	});
 
-app.get('/auth/facebook/callback',
-	passport.authenticate('facebook', {failureRedirect: '/#login'}), authenticateCB);
+app.get('/api/auth/facebook/callback', (req, res, next)=> {
+		console.log('am i called now');
+		return next();
+	},
+	passport.authenticate('facebook', {failureRedirect: 'http://localhost:3000'}), authenticateCB
+)
+;
 
 //Google
 passport.use(new GoogleStrategy(googleOptions, function(accessToken, refreshToken, profile, done) {
@@ -237,6 +242,7 @@ app.delete('/api/rides/:id', checkUser, db, routes.rides.del);
 app.get('/api/rides-attended', checkUser, db, routes.rides.attended);
 
 //User ride feedback
+// app.post('/api/feedback/:id', checkUser, db, routes.rides.feedback);
 
 //USERS
 app.get('/api/users', checkUser, db, routes.users.getUsers);

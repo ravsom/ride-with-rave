@@ -1,17 +1,19 @@
 var path = require('path');
 var objectId = require('mongodb').ObjectID;
 
-var safeFields = 'firstName lastName displayName headline photoUrl admin approved banned role angelUrl twitterUrl facebookUrl linkedinUrl githubUrl created updated';
+var safeFields = 'firstName lastName displayName headline photoUrl admin approved banned role facebookUrl linkedinUrl githubUrl created updated';
 
 exports.getUsers = function(req, res, next) {
-	if (req.session.auth && req.session.userId) {
+	console.log("Request session: " + req.session);
+	console.log("Request session authenticted: " + req.session.auth);
+	// if (req.session.auth && req.session.userId) {
 		req.db.User.find({}, safeFields, function(err, list) {
 			if (err) return next(err);
 			res.status(200).json(list);
 		});
-	} else {
-		return next('User is not recognized.')
-	}
+	// } else {
+	// 	return next('User is not recognized.')
+	// }
 };
 csv = require('express-csv');
 
@@ -42,6 +44,7 @@ exports.getUser = function(req, res, next) {
 };
 
 exports.add = function(req, res, next) {
+	//TODO - Add another layer auth.
 	var user = new req.db.User(req.body);
 	user.save(function(err) {
 		if (err) {

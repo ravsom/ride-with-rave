@@ -10,8 +10,20 @@ var User = new Schema({
 		type: String,
 		enum: enumAuthType
 	},
-	profileId: String,
-	accessToken: String,
+	facebook: {
+		profileId: String,
+		accessToken: String,
+		photoUrl: String,
+		facebookUrl: String,
+	},
+	google: {
+		profileId: String,
+		accessToken: String,
+		photoUrl: String,
+		googlePlusUrl: String,
+		emails: [String]
+	},
+	photoUrl: String,
 	firstName: {
 		type: String,
 		required: true,
@@ -21,12 +33,6 @@ var User = new Schema({
 		type: String,
 		required: false,
 		trim: true
-	},
-	displayName: {
-		type: String,
-		required: false,
-		trim: true,
-		default: this.firstName + (this.lastName ? this.lastName : ' ')
 	},
 	email: {
 		type: String,
@@ -45,7 +51,10 @@ var User = new Schema({
 		type: Boolean,
 		default: false
 	},
-	photoUrl: String,
+	instructor: {
+		type: Boolean,
+		default: false
+	},
 	created: {
 		type: Date,
 		default: Date.now
@@ -54,8 +63,6 @@ var User = new Schema({
 		type: Date,
 		default: Date.now
 	},
-	facebookUrl: String,
-	googlePlusUrl: String,
 	gender: {
 		type: String,
 		enum: userGender,

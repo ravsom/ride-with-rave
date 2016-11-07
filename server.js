@@ -21,9 +21,8 @@ var favicon = require('serve-favicon'),
 var c = require(path.join(__dirname, 'lib', 'colors'));
 require(path.join(__dirname, 'lib', 'env-vars'));
 
-var passport = require('passport'),
-	FacebookStrategy = require('passport-facebook').Strategy,
-	GoogleStrategy = require('passport-google-oauth').OAuth2Strategy;
+var passport = require('passport');
+
 
 var app = express();
 
@@ -34,6 +33,7 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(methodOverride());
 app.use(cookieParser(process.env.COOKIE_SECRET));
+
 app.use(session({
 	secret: process.env.SESSION_SECRET,
 	key: 'sid',
@@ -90,142 +90,12 @@ var db = (req, res, next) => {
 
 var routes = require('./routes');
 
+require('./routes/auth')(passport, app, connection);
+
 var checkUser = routes.main.checkUser;
 var checkAdmin = routes.main.checkAdmin;
 var checkApplicant = routes.main.checkApplicant;
 
-passport.serializeUser(function(user, done) {
-	console.log("Serializing user:" + user);
-	done(null, user);
-});
-
-passport.deserializeUser(function(obj, done) {
-	done(null, obj);
-});
-
-var facebookOptions = {
-	clientID: process.env.FACEBOOK_CLIENT_ID,
-	clientSecret: process.env.FACEBOOK_CLIENT_SECRET,
-	callbackURL: 'http://localhost:' + app.get('port') + '/api/auth/facebook/callback',
-	profileFields: ['id', 'displayName', 'photos', 'emails', 'gender']
-};
-
-var googleOptions = {
-	clientID: process.env.GOOGLE_CLIENT_ID,
-	clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-	callbackURL: 'http://localhost:' + app.get('port') + '/api/auth/google/callback',
-	scope: "openid profile email"
-};
-
-var authenticateCB = function(req, res) {
-	//FIXME Check how user gets populated here -
-	console.trace();
-	if (req.isAuthenticated()) {
-		req.session.auth = true;
-		req.session.userId = req.user._id;
-		req.session.user = req.user;
-		req.session.admin = req.user.admin;
-	}
-	if (req.user.approved) {
-		res.json(req.user);
-	} else {
-		console.log('requested user: ' + req.user);
-		res.redirect('http://localhost:3000/members');
-		// res.json(req.user);
-	}
-};
-
-//Facebook
-passport.use(new FacebookStrategy(facebookOptions, function(accessToken, refreshToken, profile, done) {
-	console.log("Profile is printed from here: " + profile);
-	console.log("Access token: " + accessToken);
-
-	console.log(profile._json);
-	if (!profile._json.name) return done(new Error('Can\'t find name in facebook'));
-	var firstName = profile._json.name,
-		lastName = '';
-	var spaceIndex = profile._json.name.indexOf(' ');
-
-	if (spaceIndex > -1) {
-		firstName = profile._json.name.substr(0, spaceIndex);
-		lastName = profile._json.name.substr(spaceIndex);
-	} else {
-		return done(new Error('Can\'t find names to fill the facebook'))
-	}
-	connection
-		.model('User', models.User, 'users')
-		.findOrCreate({
-				email: profile._json.email
-			}, {
-				profileId: profile.id,
-				displayName: profile.displayName,
-				email: profile._json.email,
-				lastName: lastName,
-				firstName: firstName,
-				photoUrl: profile._json.avatar_url,
-				userAuthType: 'facebook',
-				gender: profile._json.gender
-			}, function(err, user, created) {
-				return done(err, user);
-			}
-		);
-}));
-
-
-app.get('/api/auth/facebook',
-	passport.authenticate('facebook', {scope: ['email']}),//gender not a valid scope
-	function(req, res) {
-		// The request will be redirected to facebook for authentication, so this
-		// function will not be called.
-		console.log("Facebook callback");
-	});
-
-app.get('/api/auth/facebook/callback', (req, res, next)=> {
-		console.log('am i called now');
-		return next();
-	},
-	passport.authenticate('facebook', {failureRedirect: 'http://localhost:3000'}), authenticateCB
-)
-;
-
-//Google
-passport.use(new GoogleStrategy(googleOptions, function(accessToken, refreshToken, profile, done) {
-	console.log("Profile is printed from here: " + profile);
-	console.log("Access token: " + accessToken);
-
-	console.log(profile._json);
-	var firstName = profile._json.name.givenName,
-		lastName = profile._json.name.familyName;
-	var userAuthType = 'google';
-	connection
-		.model('User', models.User, 'users')
-		.findOrCreate({
-				email: profile._json.emails[0].value
-			}, {
-				displayName: profile.displayName,
-				email: profile._json.emails[0].value,
-				lastName: lastName,
-				firstName: firstName,
-				profileId: profile._json.id,
-				accessToken: accessToken,
-				googleUrls: profile._json.urls,
-				photoUrl: profile._json.image.url,
-				googlePlusUrl: profile._json.url,
-				occupation: profile._json.occupation,
-				gender: profile._json.gender,
-				userAuthType: userAuthType
-			}, function(err, user, created) {
-				console.log("Created: " + created);
-				console.log("USer : " + user);
-				return done(err, user);
-			}
-		);
-}));
-
-app.get('/auth/google', passport.authenticate('google'));
-
-app.get('/auth/google/callback',
-	passport.authenticate('google', {failureRedirect: '/#login'}), authenticateCB);
 
 
 //MAIN
@@ -251,6 +121,8 @@ app.post('/api/users', checkAdmin, db, routes.users.add);
 app.put('/api/users/:id', checkAdmin, db, routes.users.update);
 app.delete('/api/users/:id', checkAdmin, db, routes.users.del);
 app.get('/api/users.csv', checkAdmin, db, routes.users.getUsersCsv);
+
+app.get('/api/userByName/:name', db, routes.users.getUserByName);
 
 //APPLICATION
 app.post('/api/application', checkAdmin, db, routes.application.add);

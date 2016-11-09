@@ -56,7 +56,6 @@ exports.getUserByName = function(req, res, next) {
 
 
 exports.add = function(req, res, next) {
-	//TODO - Add another layer auth.
 	var user = new req.db.User(req.body);
 	user.save(function(err) {
 		if (err) {

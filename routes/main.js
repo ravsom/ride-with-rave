@@ -5,7 +5,7 @@ exports.checkAdmin = function(request, response, next) {
 		console.info('Access ADMIN: ' + request.session.userId);
 		return next();
 	} else {
-		next('User is not an administrator.');
+		response.status(401).json({error: 'User is not an administrator.'});
 	}
 };
 
@@ -15,9 +15,9 @@ exports.checkUser = function(req, res, next) {
 		console.log('Access USER: ' + req.session.userId);
 		next();
 	} else {
-		if(!req.session.user.approved) {
-			res.status(401).json({message:"User Unapproved."});
-		}else {
+		if (!req.session.user.approved) {
+			res.status(401).json({message: "User Unapproved."});
+		} else {
 			return next(new Error('User is not logged in.', 401));
 		}
 	}

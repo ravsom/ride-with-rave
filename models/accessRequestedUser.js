@@ -1,3 +1,7 @@
+/**
+ * Created by rs on 09/11/16.
+ */
+
 var mongoose = require('mongoose');
 var findOrCreate = require('mongoose-findorcreate');
 var Schema = mongoose.Schema;
@@ -5,24 +9,15 @@ var Schema = mongoose.Schema;
 var enumAuthType = 'google facebook'.split(' ');
 var userGender = 'male female'.split(' ');
 
-var User = new Schema({
+var AccessRequestedUser = new Schema({
 	userAuthType: {
 		type: String,
 		enum: enumAuthType
 	},
-	facebook: {
-		profileId: String,
-		accessToken: String,
-		photoUrl: String,
-		facebookUrl: String,
-	},
-	google: {
-		profileId: String,
-		accessToken: String,
-		photoUrl: String,
-		googlePlusUrl: String,
-		emails: [String]
-	},
+	socialProfileUrl: String,
+	profileId: String,
+	accessToken: String,
+	emails: [String],
 	photoUrl: String,
 	firstName: {
 		type: String,
@@ -40,18 +35,6 @@ var User = new Schema({
 		trim: true
 	},
 	approved: {
-		type: Boolean,
-		default: false
-	},
-	banned: {
-		type: Boolean,
-		default: false
-	},
-	admin: {
-		type: Boolean,
-		default: false
-	},
-	instructor: {
 		type: Boolean,
 		default: false
 	},
@@ -95,5 +78,4 @@ User.statics.findProfileByName = (name, fields, callback)=> {
 	return User.find({displayName: name}, fields, callBackCheck.bind(this, callback));
 };
 
-User.plugin(findOrCreate);
-exports.User = User;
+exports.AccessRequestedUser = AccessRequestedUser;

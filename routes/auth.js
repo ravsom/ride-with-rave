@@ -9,6 +9,7 @@ const auth = function(passport, app, connection) {
 	});
 
 	passport.deserializeUser(function(obj, done) {
+		console.log('deserializing user : ' + obj);
 		done(null, obj);
 	});
 
@@ -28,15 +29,14 @@ const auth = function(passport, app, connection) {
 
 	var authenticateCB = function(req, res) {
 		//FIXME Check how user gets populated here -
-		console.trace();
 		if (req.isAuthenticated()) {
-			console.log('Server.js -> authenticateCB -> is authenticated');
 			req.session.auth = true;
+
 			req.session.userId = req.user._id;
 			req.session.user = req.user;
 			req.session.admin = req.user.admin;
 		}
-		if (req.user.approved) {
+		if (!req.user.approved) {
 			console.log('user not approved.');
 			res.redirect('http://localhost:3000/');
 		} else {
@@ -49,39 +49,52 @@ const auth = function(passport, app, connection) {
 		passport.authenticate('facebook', {failureRedirect: 'http://localhost:3000'}), authenticateCB
 	);
 
+	const findOrCreateRequestedUser = (done, profile)=> {
+		connection.model('AccessRequestedUser', models.AccessRequestedUser, 'accessRequestedUser').findOrCreate({email: profile.email}, {
+				email: profile.email,
+				lastName: profile.lastName,
+				firstName: profile.firstName,
+				gender: profile.gender,
+				social: [{
+					userAuthType: profile.userAuthType,
+					profileId: profile.socialProfileId,
+					profileUrl: profile.socialProfileUrl,
+					accessToken: profile.accessToken,
+					emails: [profile.email],
+					photoUrl: profile.photoUrl
+				}],
+			}, function(err, user, created) {
+				console.log('existing user: ' + user + ' created: ' + created);
+				return user ? done(err, user) : null;
+			}
+		)
+	};
+
 //Google
 	passport.use(new GoogleStrategy(googleOptions, function(accessToken, refreshToken, profile, done) {
 		console.log("Profile is printed from here: " + profile);
 		console.log("Access token: " + accessToken);
-
 		console.log(profile._json);
-		var firstName = profile._json.name.givenName,
-			lastName = profile._json.name.familyName;
-		var userAuthType = 'google';
 		connection
 			.model('User', models.User, 'users')
-			.findOrCreate({
+			.findOne({
 					email: profile._json.emails[0].value
-				}, {
-					displayName: profile.displayName,
-					email: profile._json.emails[0].value,
-					lastName: lastName,
-					firstName: firstName,
-					occupation: profile._json.occupation,
-					gender: profile._json.gender,
-					userAuthType: userAuthType,
-					photoUrl: profile._json.image.url,
-					google: {
-						photoUrl: profile._json.image.url,
-						profileId: profile._json.id,
+				}, function(err, user) {
+					console.log("User not in user table : " + profile);
+					const profileObj = {
+						displayName: profile.displayName,
+						email: profile._json.emails[0].value,
+						lastName: profile._json.name.familyName,
+						firstName: profile._json.name.givenName,
+						userAuthType: 'google',
+						socialProfileUrl: profile._json.url,
 						accessToken: accessToken,
-						googleUrls: profile._json.urls,
-						googlePlusUrl: profile._json.url,
-					}
-				}, function(err, user, created) {
-					console.log("Created: " + created);
-					console.log("USer : " + user);
-					return done(err, user);
+						socialProfileId: profile._json.id,
+						gender: profile._json.gender,
+						photoUrl: profile._json.image.url
+					};
+					return user ? done(err, user) : done(err,
+						findOrCreateRequestedUser(done, profileObj));
 				}
 			);
 	}));
@@ -111,25 +124,23 @@ const auth = function(passport, app, connection) {
 		const profilePhotoUrl = profile._json.picture.data.is_silhouette ? null : profile._json.picture.data.url;
 		connection
 			.model('User', models.User, 'users')
-			.findOrCreate({
+			.findOne({
 					email: profile._json.email
-				}, {
-					profileId: profile.id,
-					displayName: profile.displayName,
-					email: profile._json.email,
-					lastName: lastName,
-					firstName: firstName,
-					photoUrl: profilePhotoUrl,
-					userAuthType: 'facebook',
-					facebook: {
-						profileId: profile.id,
-						photoUrl: profilePhotoUrl,
-						accessToken:accessToken
-					},
-					gender: profile._json.gender
-				}, function(err, user, created) {
-					console.log('auth.js-> facebook create: ' + created);
-					return done(err, user);
+				}, function(err, user) {
+					console.log("User not in user table : " + profile);
+					const profileObj = {
+						displayName: profile.displayName,
+						email: profile._json.email,
+						lastName: lastName,
+						firstName: firstName,
+						userAuthType: 'facebook',
+						accessToken: accessToken,
+						socialProfileId: profile.id,
+						gender: profile._json.gender,
+						photoUrl: profilePhotoUrl
+					};
+					return user ? done(err, user) : done(err,
+						findOrCreateRequestedUser(done, profileObj));
 				}
 			);
 	}));
@@ -142,7 +153,5 @@ const auth = function(passport, app, connection) {
 			// function will not be called.
 			console.log("Facebook callback");
 		});
-
-
 };
 module.exports = auth;

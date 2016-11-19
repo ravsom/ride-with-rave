@@ -1,19 +1,28 @@
 var bcrypt = require('bcryptjs');
 
 exports.checkAdmin = function(request, response, next) {
+	console.log('main req session: ' + JSON.stringify(request.session));
+	console.log('main req session auth : ' + request.session.auth);
+	console.log('main req session user id: ' + request.session.userId);
+	console.log('main req session user approved: ' + request.session.user.admin);
+
 	if (request.session && request.session.auth && request.session.userId && request.session.admin) {
-		console.info('Access ADMIN: ' + request.session.userId);
+		console.log('Access ADMIN: ' + request.session.userId);
 		return next();
 	} else {
-		response.status(401).json({error: 'User is not an administrator.'});
+		return response.status(401).json({error: 'User is not an administrator.'});
 	}
 };
 
 exports.checkUser = function(req, res, next) {
-	console.trace();
+	console.log('main req session: ' + JSON.stringify(req.session));
+	console.log('main req session auth : ' + req.session.auth);
+	console.log('main req session user id: ' + req.session.userId);
+	console.log('main req session user approved: ' + req.session.user.approved);
+
 	if (req.session && req.session.auth && req.session.userId && (req.session.user.approved || req.session.admin)) {
 		console.log('Access USER: ' + req.session.userId);
-		next();
+		return next();
 	} else {
 		if (!req.session.user.approved) {
 			res.status(401).json({message: "User Unapproved."});

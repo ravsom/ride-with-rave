@@ -3,10 +3,10 @@
  */
 
 var mongoose = require('mongoose');
-var findOrCreate = require('mongoose-findorcreate');
 var Schema = mongoose.Schema;
+var findOrCreate = require('mongoose-findorcreate');
 
-var enumAuthType = 'google facebook'.split(' ');
+var enumAuthType = 'google facebook strava fitbit'.split(' ');
 var userGender = 'male female'.split(' ');
 
 var AccessRequestedUser = new Schema({
@@ -14,11 +14,19 @@ var AccessRequestedUser = new Schema({
 		type: String,
 		enum: enumAuthType
 	},
-	socialProfileUrl: String,
-	profileId: String,
-	accessToken: String,
-	emails: [String],
-	photoUrl: String,
+	social: [
+		{
+			userAuthType: {
+				type: String,
+				enum: enumAuthType
+			},
+			profileUrl: String,
+			profileId: String,
+			accessToken: String,
+			photoUrl: String,
+			emails: [String]
+		}
+	],
 	firstName: {
 		type: String,
 		required: true,
@@ -69,13 +77,15 @@ const callBackCheck = (cb, err, user) => {
 	cb(null, user);
 };
 
-User.statics.findProfileById = function(id, fields, callback) {
-	var User = this;
-	return User.findById(id, fields, callBackCheck.bind(this, callback));
+AccessRequestedUser.statics.findProfileById = function(id, fields, callback) {
+	var AccessRequestedUser = this;
+	return AccessRequestedUser.findById(id, fields, callBackCheck.bind(this, callback));
 };
 
-User.statics.findProfileByName = (name, fields, callback)=> {
-	return User.find({displayName: name}, fields, callBackCheck.bind(this, callback));
+AccessRequestedUser.statics.findProfileByName = (name, fields, callback)=> {
+	return AccessRequestedUser.find({displayName: name}, fields, callBackCheck.bind(this, callback));
 };
+
+AccessRequestedUser.plugin(findOrCreate);
 
 exports.AccessRequestedUser = AccessRequestedUser;

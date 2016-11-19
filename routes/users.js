@@ -1,8 +1,7 @@
 var path = require('path');
 var mongodb = require('mongodb');
-var objectId = mongodb.ObjectID;
 
-var safeFields = 'firstName lastName displayName headline photoUrl admin approved banned role facebookUrl linkedinUrl githubUrl created updated';
+var safeFields = 'firstName lastName photoUrl admin approved banned role created updated social';
 
 exports.getUsers = function(req, res, next) {
 	console.log("Request session: " + JSON.stringify(req.session));
@@ -44,7 +43,6 @@ exports.getUser = function(req, res, next) {
 };
 
 exports.getUserByName = function(req, res, next) {
-
 	var fields = safeFields;
 	const qName = req.params.name;
 
@@ -52,6 +50,46 @@ exports.getUserByName = function(req, res, next) {
 		if (err) return next(err);
 		res.status(200).json(user);
 	});
+};
+
+exports.getMappableUsersLike = function(req, res, next) {
+	var fields = safeFields;
+	const qName = req.params.name;
+	req.db.User.find({
+		firstName: {$regex: new RegExp(qName), $options: 'i'},
+		mappedUser: false,
+		instructor: false
+	}, fields, (err, user)=> {
+		if (err) res.status(500).json({message: 'unable to search for mappable user like: ' + qName});
+		res.status(200).json(user);
+	});
+};
+
+exports.getMappableUsers = function(req, res, next) {
+	var fields = safeFields;
+
+	const qName = req.params.name;
+
+	(qName) ? (
+		//Filtered
+		req.db.User.find({
+			firstName: {$regex: new RegExp(qName), $options: 'i'},
+			mappedUser: false,
+			instructor: false
+		}, fields, {limit: 20}, (err, user)=> {
+			if (err) return next(err);
+			res.status(200).json(user);
+		})
+	) : (
+		//Non Filtered
+		req.db.User.find({
+			mappedUser: false,
+			instructor: false
+		}, fields, {limit: 5}, (err, user)=> {
+			if (err) return next(err);
+			res.status(200).json(user);
+		})
+	);
 };
 
 
@@ -93,6 +131,64 @@ exports.del = function(req, res, next) {
 	});
 };
 
+function getUnMappedAccessRequestingUsers(req, res) {
+	req.db.AccessRequestedUser.find({mappedUser: false}, {}, {limit: 10}, (function(err, obj) {
+		if (err) {
+			console.log('routes.users> error: ' + err);
+			res.status(500).json({message: 'Unable to access \'users\' :' + err.message});
+		} else {
+			res.status(200).json(obj);
+		}
+	}));
+}
+
+exports.getunapproved = function(req, res) {
+	getUnMappedAccessRequestingUsers(req, res);
+};
+
+exports.approveuser = function(req, res) {
+	const payload = req.body;
+	const accessRequestedId = payload.memberId;
+	console.log('accessRequestedId: ' + accessRequestedId);
+
+	var mappedMemberId = payload.mappedMemberId;
+	console.log('mappedMemberId: ' + mappedMemberId);
+
+	req.db.AccessRequestedUser.findById(accessRequestedId, function(err, aRU) {
+		if (err) res.status(500).json({'message': err.message});
+		aRU.update({
+			$set: {mappedUser: true}
+		}, function(err) {
+			if (err) {
+				res.status(500).json({message: 'unable to update user.' + err.message});
+			}
+			else {
+
+				req.db.User.findById(mappedMemberId, function(err, doc) {
+					if (err) res.status(500).json({message: err.message});
+					else {
+						console.log('user is ' + JSON.stringify(doc));
+						doc.update({
+							$set: {
+								accessReqUser: aRU._id,
+								mappedUser: true,
+								approved: true,
+								email: aRU.email,
+								photoUrl: aRU.photoUrl ? aRU.photoUrl : aRU.social[0].photoUrl,
+								firstName: aRU.firstName,
+								lastName: aRU.lastName
+							}
+						}, function(err) {
+							if (err) res.status(500).json({message: err.message});
+						});
+						getUnMappedAccessRequestingUsers(req, res);
+					}
+				})
+			}
+		});
+	});
+};
+
 exports.findOrAddUser = function(req, res, next) {
 	req.db.User.findOne({
 		_id: data.id
@@ -101,29 +197,6 @@ exports.findOrAddUser = function(req, res, next) {
 		if (err) return next(err);
 		if (!obj) {
 			console.warn('Creating a user', obj, data);
-			//req.db.User.create({
-			//		profileId: data.id,
-			//		//token: req.session.angelListAccessToken,
-			//		profile: data,
-			//		email: data.email,
-			//		firstName: data.name.split(' ')[0],
-			//		lastName: data.name.split(' ')[1],
-			//		displayName: data.name,
-			//		headline: data.bio,
-			//		photoUrl: data.image,
-			//		facebookUrl: data.facebook_url,
-			//		googlePlusUrl: data.url
-			//	}, function(err, obj) { //remember the scope of variables!
-			//		if (err) return next(err);
-			//		console.log('User was created', obj);
-			//		req.session.auth = true;
-			//		req.session.userId = obj._id;
-			//		req.session.user = obj;
-			//		req.session.admin = false; //assign regular user role by default
-			//		res.redirect('/#application');
-			//		// }
-			//	}
-			//);
 		} else { //user is in the database
 			req.session.auth = true;
 			req.session.userId = obj._id;

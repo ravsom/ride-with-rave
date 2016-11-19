@@ -10,18 +10,9 @@ var User = new Schema({
 		type: String,
 		enum: enumAuthType
 	},
-	facebook: {
-		profileId: String,
-		accessToken: String,
-		photoUrl: String,
-		facebookUrl: String,
-	},
-	google: {
-		profileId: String,
-		accessToken: String,
-		photoUrl: String,
-		googlePlusUrl: String,
-		emails: [String]
+	accessReqUser: {
+		type: Schema.ObjectId,
+		ref: 'AccessRequestedUser'
 	},
 	photoUrl: String,
 	firstName: {
@@ -68,7 +59,6 @@ var User = new Schema({
 		enum: userGender,
 		required: false
 	},
-	occupation: String,
 	mappedUser: {
 		type: Boolean,
 		default: false

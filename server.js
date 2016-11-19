@@ -67,8 +67,8 @@ function clientErrorHandler(err, req, res, next) {
 }
 
 function errorHandler(err, req, res, next) {
-	console.error('lastErrors response');
-	res.status(500).send(err.toString());
+	console.error('lastErrors response:' + err.toString());
+	res.status(500).json({error: err});
 }
 
 var dbUrl = process.env.MONGOHQ_URL || 'mongodb://@127.0.0.1:27017/spintracker';
@@ -83,6 +83,7 @@ var models = require('./models');
 var db = (req, res, next) => {
 	req.db = {
 		User: connection.model('User', models.User, 'users'),
+		AccessRequestedUser: connection.model('AccessRequestedUser', models.AccessRequestedUser, 'accessRequestedUser'),
 		Ride: connection.model('Ride', models.Ride, 'rides')
 	};
 	return next();
@@ -95,7 +96,6 @@ require('./routes/auth')(passport, app, connection);
 var checkUser = routes.main.checkUser;
 var checkAdmin = routes.main.checkAdmin;
 var checkApplicant = routes.main.checkApplicant;
-
 
 
 //MAIN
@@ -122,8 +122,11 @@ app.put('/api/users/:id', checkAdmin, db, routes.users.update);
 app.delete('/api/users/:id', checkAdmin, db, routes.users.del);
 app.get('/api/users.csv', checkAdmin, db, routes.users.getUsersCsv);
 
-app.get('/api/userByName/:name', db, routes.users.getUserByName);
-
+app.get('/api/unapprovedUsers', checkAdmin, db, routes.users.getunapproved);
+app.post('/api/approveuser', checkAdmin, db, routes.users.approveuser);
+app.get('/api/userByName/:name', db, checkUser, routes.users.getUserByName);
+app.get('/api/mappableusers', db, checkAdmin, routes.users.getMappableUsers);
+app.get('/api/mappableuserslike/:name', db, checkAdmin, routes.users.getMappableUsersLike);
 //APPLICATION
 app.post('/api/application', checkAdmin, db, routes.application.add);
 app.put('/api/application', checkApplicant, db, routes.application.update);

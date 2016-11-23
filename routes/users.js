@@ -163,7 +163,6 @@ exports.approveuser = function(req, res) {
 				res.status(500).json({message: 'unable to update user.' + err.message});
 			}
 			else {
-
 				req.db.User.findById(mappedMemberId, function(err, doc) {
 					if (err) res.status(500).json({message: err.message});
 					else {
